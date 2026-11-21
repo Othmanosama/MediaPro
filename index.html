@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>MediaPro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#f5f7ff;font-family:Arial,Tahoma}
+header{padding:18px 5%;background:#142238;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:26px;font-weight:bold;color:#78a3ff}
+main{max-width:900px;margin:auto;padding:18px}
+.hero,.panel{background:#17263c;border:1px solid #30425c;border-radius:16px;padding:20px;margin-bottom:16px}
+.hero{background:linear-gradient(130deg,#254775,#17263c)}
+h1{font-size:25px;margin:0 0 8px}
+h2{font-size:18px;margin:0 0 15px}
+p{color:#b2bfd2;line-height:1.7;font-size:14px}
+button{border:0;border-radius:10px;padding:12px 16px;background:#5689f5;color:white;font-weight:bold;cursor:pointer}
+.secondary{background:#2b3c55}
+input,select{width:100%;padding:13px;margin:7px 0 14px;border:1px solid #354964;border-radius:10px;background:#0d192b;color:white;font-size:15px}
+.tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
+.tabs button{background:#1b2b43}
+.tabs button.active{background:#5689f5}
+.page.hidden,.hidden{display:none!important}
+.row{display:flex;gap:9px;flex-wrap:wrap}
+.row>*{flex:1}
+.status{font-size:13px;color:#91b5ff;line-height:1.7;margin-top:10px}
+.item{background:#233650;border-radius:11px;padding:13px;margin:9px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.item strong{overflow-wrap:anywhere}
+.small{font-size:12px;color:#9eacc1}
+video,audio{width:100%;margin-top:12px;border-radius:10px;background:#000}
+footer{text-align:center;color:#8392a9;padding:20px}
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">MediaPro</div>
+ <button class="secondary" id="language">English</button>
+</header>
+<main>
+ <section class="hero">
+  <h1 id="welcome">MediaPro لإدارة الوسائط</h1>
+  <p id="intro">منصة واحدة لتنظيم ملفاتك وتشغيلها وحفظها.</p>
+ </section>
+
+ <nav class="tabs">
+  <button class="active" data-page="home">الرئيسية</button>
+  <button data-page="library">مكتبتي</button>
+  <button data-page="player">المشغل</button>
+ </nav>
+
+ <section id="home" class="page">
+  <div class="panel">
+   <h2>إضافة رابط أو ملف</h2>
+   <input id="url" placeholder="ألصق رابط ملف مباشر هنا">
+   <div class="row">
+    <button id="checkUrl">فحص الرابط</button>
+    <button class="secondary" id="paste">لصق الرابط</button>
+   </div>
+   <p class="small">روابط صفحات TikTok وYouTube وInstagram ليست روابط ملفات مباشرة. ربطها يحتاج إلى خادم متوافق، ولا يمكن تجاوز حماية المنصات.</p>
+   <hr style="border-color:#30425c">
+   <label>اختر ملفًا من هاتفك</label>
+   <input type="file" id="file" accept="video/*,audio/*">
+   <div id="fileStatus" class="status"></div>
+  </div>
+
+  <div class="panel">
+   <h2>خيارات الملف</h2>
+   <label>جودة الفيديو</label>
+   <select id="quality">
+    <option value="original">الجودة الأصلية</option>
+    <option value="hd">HD - تحتاج خادم تحويل</option>
+    <option value="medium">متوسطة - تحتاج خادم تحويل</option>
+   </select>
+   <label>صيغة الصوت</label>
+   <select id="format">
+    <option value="original">الصيغة الأصلية</option>
+    <option value="mp3">MP3 - تحتاج محرك تحويل</option>
+    <option value="m4a">M4A - تحتاج محرك تحويل</option>
+   </select>
+   <h2>مكان الحفظ</h2>
+   <label><input type="radio" name="destination" value="phone" checked style="width:auto"> الهاتف</label>
+   <br><br>
+   <label><input type="radio" name="destination" value="library" style="width:auto"> مكتبة MediaPro</label>
+   <br><br>
+   <button id="save" style="width:100%">حفظ الملف</button>
+   <div id="saveStatus" class="status"></div>
+  </div>
+ </section>
+
+ <section id="library" class="page hidden">
+  <div class="panel">
+   <h2>مكتبتي</h2>
+   <p>ملفاتك المحفوظة داخل المتصفح على هذا الجهاز.</p>
+   <div id="files"></div>
+   <p id="empty">لا توجد ملفات محفوظة.</p>
+  </div>
+ </section>
+
+ <section id="player" class="page hidden">
+  <div class="panel">
+   <h2>مشغل MediaPro</h2>
+   <p>يمكن للمتصفح دعم تشغيل الصوت في الخلفية، بحسب إعدادات الجهاز والنظام.</p>
+   <video id="video" controls playsinline class="hidden"></video>
+   <audio id="audio" controls class="hidden"></audio>
+   <div id="now" class="status">لم يتم اختيار ملف.</div>
+  </div>
+ </section>
+</main>
+<footer>MediaPro © 2026</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+let selected=null,objectURL=null,db=null;
+
+function page(id){
+ document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));
+ $(id).classList.remove("hidden");
+ document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
+ if(id==="library")render();
+}
+document.querySelectorAll(".tabs button").forEach(x=>x.onclick=()=>page(x.dataset.page));
+
+function openFile(file){
+ if(objectURL)URL.revokeObjectURL(objectURL);
+ objectURL=URL.createObjectURL(file);
+ const isVideo=file.type.startsWith("video/");
+ $("video").classList.toggle("hidden",!isVideo);
+ $("audio").classList.toggle("hidden",isVideo);
+ const p=isVideo?$("video"):$("audio");
+ p.src=objectURL;
+ p.play().catch(()=>{});
+ $("now").textContent="قيد التشغيل: "+file.name;
+ if("mediaSession" in navigator){
+  navigator.mediaSession.metadata=new MediaMetadata({title:file.name,artist:"MediaPro"});
+  navigator.mediaSession.setActionHandler("play",()=>p.play());
+  navigator.mediaSession.setActionHandler("pause",()=>p.pause());
+ }
+ page("player");
+}
+
+function openDB(){
+ return new Promise((resolve,reject)=>{
+  const r=indexedDB.open("MediaProDB",1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("files",{keyPath:"id",autoIncrement:true});
+  r.onsuccess=()=>{db=r.result;resolve(db)};
+  r.onerror=()=>reject(r.error);
+ });
+}
+async function saveLocal(file){
+ if(!db)await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction("files","readwrite");
+  tx.objectStore("files").add({name:file.name,type:file.type,size:file.size,blob:file});
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+}
+async function allFiles(){
+ if(!db)await openDB();
+ return new Promise((resolve,reject)=>{
+  const r=db.transaction("files").objectStore("files").getAll();
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+}
+async function remove(id){
+ if(!db)await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction("files","readwrite");
+  tx.objectStore("files").delete(id);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+}
+
+$("file").onchange=e=>{
+ selected=e.target.files[0]||null;
+ $("fileStatus").textContent=selected?"تم اختيار: "+selected.name:"";
+};
+
+$("checkUrl").onclick=()=>{
+ const value=$("url").value.trim();
+ try{
+  const u=new URL(value);
+  if(!["http:","https:"].includes(u.protocol))throw Error();
+  $("fileStatus").textContent="الرابط صحيح شكليًا. جلب الملف يحتاج رابطًا مباشرًا يسمح بالوصول من المتصفح أو خادم MediaPro.";
+ }catch(e){
+  $("fileStatus").textContent="يرجى إدخال رابط صحيح يبدأ بـ https:// أو http://";
+ }
+};
+
+$("paste").onclick=async()=>{
+ try{$("url").value=await navigator.clipboard.readText();}
+ catch(e){$("fileStatus").textContent="الصق الرابط يدويًا في الخانة.";}
+};
+
+$("save").onclick=async()=>{
+ if(!selected){$("saveStatus").textContent="اختر ملفًا من الهاتف أولًا.";return;}
+ if($("quality").value!=="original"||$("format").value!=="original"){
+  $("saveStatus").textContent="تحويل الجودة والصيغ يحتاج إلى خادم التحويل، وسنربطه في المرحلة التالية.";
+  return;
+ }
+ const dest=document.querySelector('input[name="destination"]:checked').value;
+ if(dest==="library"){
+  try{
+   await saveLocal(selected);
+   $("saveStatus").textContent="تم الحفظ في مكتبة MediaPro.";
+   render();
+  }catch(e){$("saveStatus").textContent="تعذر الحفظ. قد تكون مساحة المتصفح غير كافية.";}
+ }else{
+  const u=URL.createObjectURL(selected);
+  const a=document.createElement("a");
+  a.href=u;a.download=selected.name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),60000);
+  $("saveStatus").textContent="تم طلب تنزيل الملف إلى الهاتف.";
+ }
+};
+
+async function render(){
+ const list=$("files");list.innerHTML="";
+ const items=await allFiles();
+ $("empty").style.display=items.length?"none":"block";
+ items.forEach(f=>{
+  const div=document.createElement("div");div.className="item";
+  const info=document.createElement("div");
+  const name=document.createElement("strong");name.textContent=f.name;
+  const size=document.createElement("div");size.className="small";
+  size.textContent=(f.size/1048576).toFixed(2)+" MB";
+  info.append(name,size);
+  const actions=document.createElement("div");actions.className="row";
+  const play=document.createElement("button");play.textContent="تشغيل";
+  play.onclick=()=>openFile(f.blob);
+  const download=document.createElement("button");download.className="secondary";download.textContent="للهاتف";
+  download.onclick=()=>{
+   const u=URL.createObjectURL(f.blob);
+   const a=document.createElement("a");a.href=u;a.download=f.name;a.click();
+   setTimeout(()=>URL.revokeObjectURL(u),60000);
+  };
+  const del=document.createElement("button");del.className="secondary";del.textContent="حذف";
+  del.onclick=async()=>{await remove(f.id);render()};
+  actions.append(play,download,del);div.append(info,actions);list.append(div);
+ });
+}
+$("language").onclick=()=>alert("سيتم إضافة التبديل الكامل للغة في تحديث الواجهة التالي.");
+openDB().then(render);
+</script>
+</body>
+</html>

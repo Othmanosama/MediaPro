@@ -1,547 +1,241 @@
+from pathlib import Path
+import zipfile, textwrap, os
 
-<!DOCTYPE html>
+base = Path("/mnt/data/MediaPro")
+base.mkdir(exist_ok=True)
+(base / "public").mkdir(exist_ok=True)
+
+index_html = r'''<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f4efe6">
-<title>MediaPro</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4efe6"><title>MediaPro</title>
 <style>
-:root{
-  --bg:#f4efe6;--panel:#fffdf9;--line:#e8dfd2;
-  --gold:#b78b5c;--gold2:#98704a;--text:#292a2b;
-  --muted:#77736d;--navy:#263746;
-  --shadow:0 14px 36px rgba(72,55,34,.08);
-}
-*{box-sizing:border-box}
-body{
-  margin:0;background:radial-gradient(ellipse at 50% 0%,#fffaf2,var(--bg) 68%);
-  color:var(--text);font-family:Arial,Tahoma,sans-serif;min-height:100vh
-}
-button,input,select{font:inherit}
-button{
-  border:1px solid transparent;cursor:pointer;color:white;font-weight:bold;
-  border-radius:999px;padding:13px 20px;
-  background:linear-gradient(135deg,#c49b6d,#a77b50);
-  box-shadow:0 7px 16px rgba(157,116,72,.18);
-  transition:.2s
-}
-button:hover{transform:translateY(-2px)}
-button:active{transform:scale(.98)}
-.secondary{
-  background:#fff;border:1px solid #e2d5c5;color:#66523e;box-shadow:none
-}
-.topbar{
-  min-height:92px;background:#fffdf9;border-bottom:1px solid var(--line);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 24px;gap:18px
-}
-.brand{display:flex;align-items:center;gap:13px;font-size:28px;font-weight:800;color:var(--navy)}
-.brand span{color:#b58b60}
-.playmark{
-  width:54px;height:54px;border-radius:18px;
-  background:linear-gradient(145deg,#d3b18a,#a77b50);
-  display:grid;place-items:center;font-size:24px;color:white
-}
-.top-desc{color:#81796e;font-size:14px;text-align:center}
-.lang{background:#f6f0e7;color:#5e4c39;border:1px solid #e6d9c9;box-shadow:none}
-.layout{
-  display:grid;direction:ltr;grid-template-columns:minmax(0,1fr) 245px;
-  min-height:calc(100vh - 92px)
-}
-main{direction:rtl;padding:30px 24px 50px;min-width:0}
-.sidebar{
-  direction:rtl;border-right:1px solid var(--line);
-  padding:32px 14px;background:rgba(255,253,249,.72)
-}
-.navbtn{
-  display:flex;align-items:center;justify-content:space-between;width:100%;
-  margin-bottom:13px;padding:19px 18px;background:#f2ece3;
-  border:1px solid #e9dfd2;color:#51483e;font-size:17px;
-  box-shadow:none;border-radius:18px
-}
-.navbtn.active{
-  background:linear-gradient(125deg,#c9a77f,#a77b50);
-  color:white;border-color:transparent
-}
-.content-grid{
-  display:grid;direction:ltr;
-  grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
-  gap:22px;align-items:stretch
-}
-.content-grid>.panel{direction:rtl}
-.panel{
-  background:linear-gradient(145deg,#fffefa,#fbf7f0);
-  border:1px solid var(--line);border-radius:26px;
-  padding:25px;margin-bottom:18px;box-shadow:var(--shadow);min-width:0
-}
-.panel h2{font-size:22px;margin:0 0 22px;color:#343536}
-.panel p{color:var(--muted);font-size:14px;line-height:1.8}
-.player-panel{min-height:580px;display:flex;flex-direction:column}
-.player-panel .hint{margin-top:auto}
-.player-wrap{
-  background:#202b32;border-radius:20px;overflow:hidden;min-height:300px;
-  display:flex;align-items:center;justify-content:center;
-  margin-top:12px;border:5px solid #f0e8dc
-}
-video,audio{width:100%;max-height:430px;background:#202b32;display:block}
-audio{margin:20px 0}
-.empty-player{color:#e8dfd3;text-align:center;padding:40px 15px}
-.empty-player .big{font-size:55px;color:#d1b18c}
-.field{
-  width:100%;background:white;border:1px solid #e5d9ca;
-  border-radius:16px;color:#343536;padding:17px 18px;
-  outline:none;margin:0 0 14px;min-width:0
-}
-#url{direction:ltr;text-align:left;unicode-bidi:plaintext}
-#url:placeholder-shown{text-align:right}
-.field:focus{border-color:#bd966c;box-shadow:0 0 0 4px rgba(189,150,108,.14)}
-.actions{display:flex;gap:12px}
-.actions>*{flex:1;min-width:0}
-.upload-zone{
-  display:block;border:1.5px dashed #c9ad8c;border-radius:22px;
-  padding:26px 15px;text-align:center;background:#fbf6ee;cursor:pointer
-}
-.upload-zone .cloud{font-size:37px;color:#ad865e}
-.upload-zone p{margin:8px 0 0}
-input[type=file]{display:none}
-hr{border:0;border-top:1px solid #e9dfd2;margin:22px 0}
-.status{color:#94724e;font-size:13px;line-height:1.7;min-height:20px;margin-top:10px;overflow-wrap:anywhere}
-.small{font-size:12px!important;color:#898176!important}
-.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-select{
-  width:100%;background:white;border:1px solid #e5d9ca;
-  color:#403b35;border-radius:14px;padding:13px;margin-bottom:12px
-}
-.radio-row{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 18px}
-.radio-label{display:flex;align-items:center;gap:8px}
-.radio-label input{accent-color:#a77b50;width:17px;height:17px}
-.page{display:none}.page.active{display:block}
-.lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.library-list{display:grid;gap:10px}
-.item{
-  background:#faf6ef;border:1px solid #e9dfd2;border-radius:17px;
-  padding:13px;display:flex;align-items:center;
-  justify-content:space-between;gap:12px;flex-wrap:wrap
-}
-.item-info{min-width:0;flex:1}
-.item strong{display:block;overflow-wrap:anywhere}
-.item .small{margin-top:5px}
-.item-actions{display:flex;gap:7px;flex-wrap:wrap}
-.item-actions button{padding:9px 14px;font-size:12px}
-.empty{color:#93897c;text-align:center;padding:22px}
-footer{text-align:center;color:#958b7e;padding:15px;font-size:12px}
-@media(max-width:950px){
- .layout{grid-template-columns:1fr}
- .sidebar{
-   order:-1;border-right:0;border-bottom:1px solid var(--line);
-   padding:12px;display:flex;gap:8px
- }
- .navbtn{margin:0;padding:13px 10px;justify-content:center;font-size:14px}
- main{padding:18px 14px 35px}
-}
-@media(max-width:700px){
- .topbar{height:auto;padding:12px 14px;flex-wrap:wrap}
- .brand{font-size:22px}
- .brand .playmark{width:43px;height:43px}
- .top-desc{order:3;width:100%;font-size:12px}
- .content-grid,.lower-grid{grid-template-columns:1fr}
- .panel{padding:19px;border-radius:21px}
- .player-panel{min-height:380px}
- .player-wrap{min-height:220px}
- .option-grid{grid-template-columns:1fr}
- .actions{gap:8px}
- .actions button{padding:12px 9px;font-size:13px}
-}
-</style>
-</head>
+:root{--bg:#f4efe6;--card:#fffdf9;--line:#e8dfd2;--gold:#b78b5c;--ink:#29343b;--muted:#81796e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Tahoma,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:18px 5%;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:26px;font-weight:800}.logo span{color:var(--gold)}
+main{max-width:1050px;margin:auto;padding:25px 16px}
+.hero,.panel{background:var(--card);border:1px solid var(--line);border-radius:23px;padding:22px;margin-bottom:18px;box-shadow:0 10px 28px #59472a0c}
+.hero{background:linear-gradient(120deg,#fffdf9,#eee2d1)}
+h1{margin:0 0 8px;font-size:25px}h2{font-size:19px;margin:0 0 16px}
+p,.muted{color:var(--muted);line-height:1.7;font-size:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+input,select{width:100%;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#333;margin:7px 0 14px;font-size:15px}
+button{border:0;border-radius:15px;padding:13px 18px;background:linear-gradient(135deg,#c49b6d,#a77b50);color:white;font-weight:bold;cursor:pointer}
+button.alt{background:#f3ece2;color:#5e4c39;border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:not-allowed}.actions{display:flex;gap:9px;flex-wrap:wrap}.actions button{flex:1}
+.status{min-height:22px;color:#96734e;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.player{background:#26343b;border-radius:18px;padding:12px;min-height:95px;color:white}
+audio,video{width:100%;max-height:380px}.hidden{display:none!important}
+.note{font-size:12px;color:#877d70}.file-row{padding:12px;background:#f8f3eb;border:1px solid var(--line);border-radius:13px;margin:8px 0;overflow-wrap:anywhere}
+footer{text-align:center;color:#948879;padding:18px;font-size:12px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}header{padding:14px}.hero,.panel{padding:18px}}
+</style></head>
 <body>
-
-<header class="topbar">
-  <button class="lang" id="language">🌐 العربية</button>
-  <div class="top-desc">منصة واحدة لتنظيم ملفاتك وتشغيلها وحفظها.</div>
-  <div class="brand"><span>Pro</span> Media <div class="playmark">▶</div></div>
-</header>
-
-<div class="layout">
+<header><div class="logo">Media<span>Pro</span></div><div class="muted">إدارة وتشغيل الوسائط</div></header>
 <main>
-
-<section id="home" class="page active">
-<div class="content-grid">
-
-<section class="panel player-panel">
-  <h2>مشغل MediaPro ▶</h2>
-  <div class="player-wrap">
-    <div class="empty-player" id="emptyPlayer">
-      <div class="big">▶</div>
-      اختر ملف فيديو أو صوت لتشغيله هنا
-    </div>
-    <video id="video" controls playsinline style="display:none"></video>
-    <audio id="audio" controls style="display:none"></audio>
-  </div>
-  <div class="status" id="now">لم يتم اختيار ملف بعد.</div>
-  <p class="hint small">تشغيل الخلفية يعتمد على دعم المتصفح وإعدادات الجهاز.</p>
-</section>
-
+<section class="hero"><h1>مرحبًا بك في MediaPro</h1><p>حوّل ملفات الفيديو التي تملكها إلى صوت، وشغّل ملفاتك واحفظها على جهازك.</p></section>
+<div class="grid">
 <section class="panel">
-  <h2>🔗 إضافة رابط أو ملف</h2>
-  <input class="field" id="url" type="url" placeholder="ألصق رابط ملف مباشر هنا">
-  <div class="actions">
-    <button id="checkUrl">فحص الرابط ⌕</button>
-    <button class="secondary" id="paste">لصق الرابط ▢</button>
-  </div>
-  <p class="small">الروابط المباشرة تعمل إذا سمح الخادم بالوصول. روابط صفحات المنصات ليست روابط ملفات مباشرة.</p>
-  <div class="status" id="urlStatus"></div>
-  <hr>
-  <h2>☁ اختر ملفًا من هاتفك</h2>
-  <label class="upload-zone" for="file">
-    <div class="cloud">☁</div>
-    <strong>اضغط لاختيار ملف أو اسحبه إلى هنا</strong>
-    <p>يدعم ملفات الفيديو والصوت من جهازك</p>
-  </label>
-  <input type="file" id="file" accept="video/*,audio/*">
-  <div class="status" id="fileStatus">لم يتم اختيار أي ملف.</div>
+<h2>① اختر ملفًا من جهازك</h2>
+<input id="file" type="file" accept="video/*,audio/*">
+<label>صيغة الإخراج</label>
+<select id="format"><option value="mp3">MP3 صوت</option><option value="m4a">M4A صوت</option><option value="original">الملف الأصلي</option></select>
+<div class="actions"><button id="convert">معالجة الملف</button><button class="alt" id="saveOriginal">حفظ الأصلي</button></div>
+<div id="status" class="status" aria-live="polite"></div>
+<p class="note">تُرفع الملفات إلى خادم MediaPro للمعالجة ثم يُعاد الملف الناتج. لا ترفع ملفات لا تملك حق استخدامها.</p>
+</section>
+<section class="panel">
+<h2>② المشغّل</h2>
+<div class="player"><div id="empty">لم يتم اختيار ملف بعد.</div><video id="video" controls playsinline class="hidden"></video><audio id="audio" controls class="hidden"></audio></div>
+<div class="actions" style="margin-top:12px"><button class="alt" id="downloadResult" disabled>تنزيل الناتج إلى الهاتف</button></div>
+<div class="status" id="playerStatus"></div>
 </section>
 </div>
-
-<div class="lower-grid">
 <section class="panel">
-  <h2>⚙ خيارات الملف</h2>
-  <div class="option-grid">
-    <div>
-      <label for="quality">جودة الفيديو</label>
-      <select id="quality">
-        <option value="original">الجودة الأصلية</option>
-        <option value="hd">HD</option>
-        <option value="medium">متوسطة</option>
-      </select>
-    </div>
-    <div>
-      <label for="format">صيغة الصوت</label>
-      <select id="format">
-        <option value="original">الصيغة الأصلية</option>
-        <option value="mp3">MP3</option>
-        <option value="m4a">M4A</option>
-      </select>
-    </div>
-  </div>
-  <label>مكان الحفظ</label>
-  <div class="radio-row">
-    <label class="radio-label"><input type="radio" name="destination" value="phone" checked> الهاتف</label>
-    <label class="radio-label"><input type="radio" name="destination" value="library"> مكتبة MediaPro</label>
-  </div>
-  <button id="save" style="width:100%">حفظ الملف</button>
-  <div class="status" id="saveStatus"></div>
-  <p class="small">تحويل الصيغ والجودة يحتاج إلى محرك تحويل متصل بخادم.</p>
+<h2>③ رابط ملف مباشر (اختياري)</h2>
+<input id="directUrl" type="url" dir="ltr" placeholder="https://example.com/video.mp4">
+<p class="note">هذه النسخة لا تجلب صفحات TikTok أو YouTube أو Instagram. الروابط المباشرة الخارجية تحتاج إعداد CORS ومصدرًا موثوقًا؛ ارفع الملف من جهازك بدلًا من ذلك.</p>
 </section>
-
 <section class="panel">
-  <h2>📚 مكتبتي</h2>
-  <p>الملفات التي تحفظها تبقى داخل مساحة المتصفح على هذا الجهاز.</p>
-  <div id="files" class="library-list"></div>
-  <div id="empty" class="empty">لا توجد ملفات محفوظة حتى الآن.</div>
-  <button class="secondary" id="goLibrary" style="width:100%;margin-top:12px">عرض مكتبتي</button>
+<h2>④ إعداد الاتصال بالخادم</h2>
+<label>عنوان خادم MediaPro</label>
+<input id="apiBase" type="url" dir="ltr" placeholder="https://your-backend.example.com">
+<button id="saveApi" class="alt">حفظ عنوان الخادم</button>
+<div class="status" id="apiStatus">أدخل عنوان الخادم بعد نشره.</div>
 </section>
-</div>
-</section>
-
-<section id="libraryPage" class="page">
-<section class="panel">
-  <h2>📚 مكتبتي</h2>
-  <p>إدارة الملفات المحفوظة على هذا الجهاز.</p>
-  <div id="filesFull" class="library-list"></div>
-  <div id="emptyFull" class="empty">لا توجد ملفات محفوظة.</div>
-</section>
-</section>
-
-<section id="playerPage" class="page">
-<section class="panel">
-  <h2>▶ مشغل MediaPro</h2>
-  <div class="player-wrap">
-    <video id="videoFull" controls playsinline style="display:none"></video>
-    <audio id="audioFull" controls style="display:none"></audio>
-    <div class="empty-player" id="emptyFullPlayer">
-      <div class="big">▶</div>اختر ملفًا من المكتبة لتشغيله
-    </div>
-  </div>
-  <div class="status" id="nowFull">لم يتم اختيار ملف.</div>
-</section>
-</section>
-
-</main>
-
-<aside class="sidebar">
-  <button class="navbtn active" data-page="home">⌂ الرئيسية</button>
-  <button class="navbtn" data-page="libraryPage">▣ مكتبتي</button>
-  <button class="navbtn" data-page="playerPage">▶ المشغل</button>
-</aside>
-</div>
-
-<footer>MediaPro © 2026</footer>
-
+</main><footer>MediaPro © 2026</footer>
 <script>
-const $=id=>document.getElementById(id);
-let selectedFile=null,currentObjectURL=null,db=null,currentMedia=null;
+const $=id=>document.getElementById(id);let resultBlob=null,resultName="mediapro-output";
+const saved=localStorage.getItem("mediapro_api_base");if(saved)$("apiBase").value=saved;
+function base(){return $("apiBase").value.trim().replace(/\/+$/,"")}
+$("saveApi").onclick=()=>{const v=base();if(!/^https?:\/\//i.test(v)){ $("apiStatus").textContent="أدخل عنوانًا يبدأ بـ https://";return;}localStorage.setItem("mediapro_api_base",v);$("apiStatus").textContent="تم حفظ عنوان الخادم على هذا الجهاز.";};
+function showBlob(blob,name){resultBlob=blob;resultName=name;const u=URL.createObjectURL(blob);$("empty").classList.add("hidden");const isVideo=blob.type.startsWith("video/");$("video").classList.toggle("hidden",!isVideo);$("audio").classList.toggle("hidden",isVideo);const el=isVideo?$("video"):$("audio");$("video").pause();$("audio").pause();el.src=u;el.load();$("downloadResult").disabled=false;$("playerStatus").textContent="جاهز للتشغيل: "+name;}
+$("downloadResult").onclick=()=>{if(!resultBlob)return;const u=URL.createObjectURL(resultBlob),a=document.createElement("a");a.href=u;a.download=resultName;a.click();setTimeout(()=>URL.revokeObjectURL(u),60000);};
+$("saveOriginal").onclick=()=>{const f=$("file").files[0];if(!f){$("status").textContent="اختر ملفًا أولًا.";return;}showBlob(f,f.name);$("status").textContent="تم تجهيز الملف الأصلي للتشغيل والتنزيل.";};
+$("convert").onclick=async()=>{const f=$("file").files[0];if(!f){$("status").textContent="اختر ملف فيديو أو صوت أولًا.";return;}const api=base();if(!api){$("status").textContent="أدخل عنوان الخادم واحفظه أولًا.";return;}const format=$("format").value;if(format==="original"){showBlob(f,f.name);$("status").textContent="تم تجهيز الملف الأصلي.";return;}
+const fd=new FormData();fd.append("media",f);fd.append("format",format);$("convert").disabled=true;$("status").textContent="جارٍ رفع الملف ومعالجته…";
+try{const r=await fetch(api+"/api/convert",{method:"POST",body:fd});if(!r.ok){let msg="فشل التحويل";try{const j=await r.json();msg=j.error||msg;}catch{}throw Error(msg);}const blob=await r.blob();const ext=format;const name=(f.name.replace(/\.[^.]+$/,"")||"mediapro")+"."+ext;showBlob(blob,name);$("status").textContent="اكتمل التحويل. يمكنك تشغيل الملف أو تنزيله.";}
+catch(e){$("status").textContent="تعذر الاتصال بالخادم: "+e.message+" — تحقق من عنوان الخادم وإعداد CORS.";}
+finally{$("convert").disabled=false;}};
+</script></body></html>'''
 
-function showPage(id){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  $(id).classList.add("active");
-  document.querySelectorAll(".navbtn").forEach(b=>
-    b.classList.toggle("active",b.dataset.page===id)
-  );
-  if(id==="libraryPage")renderLibrary("filesFull","emptyFull");
-}
-document.querySelectorAll(".navbtn").forEach(b=>
-  b.addEventListener("click",()=>showPage(b.dataset.page))
-);
-$("goLibrary").onclick=()=>showPage("libraryPage");
+server_js = r'''const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const helmet = require("helmet");
+const { spawn } = require("child_process");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const crypto = require("crypto");
 
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open("MediaProDB",1);
-    req.onupgradeneeded=()=>{
-      if(!req.result.objectStoreNames.contains("files"))
-        req.result.createObjectStore("files",{keyPath:"id",autoIncrement:true});
-    };
-    req.onsuccess=()=>{db=req.result;resolve(db)};
-    req.onerror=()=>reject(req.error);
-  });
-}
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MAX_MB = Number(process.env.MAX_UPLOAD_MB || 300);
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*").split(",").map(x => x.trim());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(cors({ origin(origin, cb) {
+  if (!origin || ALLOWED_ORIGINS.includes("*") || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+  return cb(new Error("Origin is not allowed by CORS"));
+}}));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
-async function storeFile(file){
-  if(!db)await openDB();
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction("files","readwrite");
-    tx.objectStore("files").add({
-      name:file.name,type:file.type,size:file.size,blob:file
-    });
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-}
-
-async function getFiles(){
-  if(!db)await openDB();
-  return new Promise((resolve,reject)=>{
-    const req=db.transaction("files").objectStore("files").getAll();
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
-
-async function deleteFile(id){
-  return new Promise((resolve,reject)=>{
-    const tx=db.transaction("files","readwrite");
-    tx.objectStore("files").delete(id);
-    tx.oncomplete=resolve;
-    tx.onerror=()=>reject(tx.error);
-  });
-}
-
-function setMediaSession(file,media){
-  if(!("mediaSession" in navigator))return;
-  try{
-    if("MediaMetadata" in window){
-      navigator.mediaSession.metadata=new MediaMetadata({
-        title:file.name,artist:"MediaPro",album:"مكتبتي"
-      });
-    }
-    navigator.mediaSession.setActionHandler("play",()=>media.play());
-    navigator.mediaSession.setActionHandler("pause",()=>media.pause());
-    navigator.mediaSession.setActionHandler("stop",()=>media.pause());
-  }catch(e){}
-}
-
-function playFile(file,full=false){
-  if(currentObjectURL)URL.revokeObjectURL(currentObjectURL);
-  currentObjectURL=URL.createObjectURL(file);
-
-  const isVideo=file.type.startsWith("video/");
-  const video=full?$("videoFull"):$("video");
-  const audio=full?$("audioFull"):$("audio");
-  const empty=full?$("emptyFullPlayer"):$("emptyPlayer");
-  const now=full?$("nowFull"):$("now");
-
-  video.pause();audio.pause();
-  video.removeAttribute("src");audio.removeAttribute("src");
-  video.style.display=isVideo?"block":"none";
-  audio.style.display=isVideo?"none":"block";
-  empty.style.display="none";
-
-  const media=isVideo?video:audio;
-  media.src=currentObjectURL;
-  media.load();
-  media.play().catch(()=>{});
-
-  currentMedia=media;
-  setMediaSession(file,media);
-  now.textContent="قيد التشغيل: "+file.name;
-  if(full)showPage("playerPage");
-  else showPage("home");
-}
-
-$("file").addEventListener("change",e=>{
-  selectedFile=e.target.files&&e.target.files[0]||null;
-  $("fileStatus").textContent=selectedFile?
-    "تم اختيار: "+selectedFile.name+" ("+
-    (selectedFile.size/1048576).toFixed(2)+" MB)":
-    "لم يتم اختيار ملف.";
-  if(selectedFile)playFile(selectedFile);
+const upload = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: MAX_MB * 1024 * 1024, files: 1 },
+  fileFilter(req, file, cb) {
+    if (!/^(video|audio)\//.test(file.mimetype)) return cb(new Error("يسمح فقط بملفات الفيديو والصوت."));
+    cb(null, true);
+  }
 });
 
-$("paste").onclick=async()=>{
-  try{
-    $("url").value=await navigator.clipboard.readText();
-    $("urlStatus").textContent="تم لصق الرابط.";
-  }catch(e){
-    $("urlStatus").textContent="لم يسمح المتصفح بالحافظة. الصق الرابط يدويًا.";
-  }
-};
+app.get("/api/media/health", (req, res) => res.json({ ok: true, service: "MediaPro", ffmpeg: process.env.FFMPEG_PATH || "ffmpeg" }));
 
-$("checkUrl").onclick=()=>{
-  const value=$("url").value.trim();
-  try{
-    const u=new URL(value);
-    if(!["http:","https:"].includes(u.protocol))throw Error();
-
-    const isKnownPage=/tiktok\.com|youtube\.com|youtu\.be|instagram\.com|snapchat\.com|facebook\.com/i.test(u.hostname);
-
-    if(isKnownPage){
-      $("urlStatus").textContent=
-        "هذا رابط صفحة منصة وليس ملفًا مباشرًا. يلزم خادم متوافق ومصرّح به.";
-      return;
-    }
-
-    $("urlStatus").textContent=
-      "تم قبول الرابط شكليًا. يجب أن يكون رابط ملف مباشرًا وأن يسمح خادمه بالتشغيل.";
-
-    const ext=(u.pathname.split(".").pop()||"").toLowerCase();
-    const type=["mp3","m4a","wav","ogg"].includes(ext)?"audio":
-      ["mp4","webm","mov"].includes(ext)?"video":"";
-
-    if(type){
-      const media=type==="audio"?$("audio"):$("video");
-      $("emptyPlayer").style.display="none";
-      $("video").style.display=type==="video"?"block":"none";
-      $("audio").style.display=type==="audio"?"block":"none";
-      media.src=value;
-      media.load();
-      media.play().catch(()=>{
-        $("urlStatus").textContent+=" اضغط زر التشغيل أو تحقق من صلاحية الرابط.";
-      });
-      $("now").textContent="الرابط الحالي: "+u.hostname;
-    }
-  }catch(e){
-    $("urlStatus").textContent="الرابط غير صحيح. تأكد أنه يبدأ بـ https:// أو http://";
-  }
-};
-
-$("save").onclick=async()=>{
-  if(!selectedFile){
-    $("saveStatus").textContent="اختر ملفًا من الهاتف أولًا.";
-    return;
-  }
-
-  if($("quality").value!=="original"||$("format").value!=="original"){
-    $("saveStatus").textContent=
-      "تحويل الجودة أو MP3/M4A غير مفعّل في هذه النسخة ويحتاج إلى محرك تحويل.";
-    return;
-  }
-
-  const destination=document.querySelector(
-    'input[name="destination"]:checked'
-  ).value;
-
-  if(destination==="library"){
-    try{
-      await storeFile(selectedFile);
-      $("saveStatus").textContent="تم حفظ الملف في مكتبة MediaPro.";
-      await renderLibrary("files","empty");
-      await renderLibrary("filesFull","emptyFull");
-    }catch(e){
-      $("saveStatus").textContent="تعذر الحفظ. قد تكون مساحة المتصفح غير كافية.";
-    }
-  }else{
-    const u=URL.createObjectURL(selectedFile);
-    const a=document.createElement("a");
-    a.href=u;a.download=selectedFile.name;
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(u),60000);
-    $("saveStatus").textContent="تم إرسال الملف إلى تنزيلات الهاتف.";
-  }
-};
-
-async function renderLibrary(listId,emptyId){
-  const list=$(listId),empty=$(emptyId);
-  if(!list||!empty)return;
-  list.innerHTML="";
-
-  try{
-    const items=await getFiles();
-    empty.style.display=items.length?"none":"block";
-
-    items.forEach(file=>{
-      const row=document.createElement("div");
-      row.className="item";
-
-      const info=document.createElement("div");
-      info.className="item-info";
-
-      const name=document.createElement("strong");
-      name.textContent=file.name;
-
-      const size=document.createElement("div");
-      size.className="small";
-      size.textContent=(file.size/1048576).toFixed(2)+" MB";
-
-      info.append(name,size);
-
-      const actions=document.createElement("div");
-      actions.className="item-actions";
-
-      const play=document.createElement("button");
-      play.textContent="تشغيل";
-      play.onclick=()=>playFile(file.blob);
-
-      const download=document.createElement("button");
-      download.className="secondary";
-      download.textContent="للهاتف";
-      download.onclick=()=>{
-        const u=URL.createObjectURL(file.blob);
-        const a=document.createElement("a");
-        a.href=u;a.download=file.name;a.click();
-        setTimeout(()=>URL.revokeObjectURL(u),60000);
-      };
-
-      const del=document.createElement("button");
-      del.className="secondary";
-      del.textContent="حذف";
-      del.onclick=async()=>{
-        await deleteFile(file.id);
-        renderLibrary(listId,emptyId);
-      };
-
-      actions.append(play,download,del);
-      row.append(info,actions);
-      list.append(row);
-    });
-  }catch(e){
-    empty.textContent="تعذر فتح المكتبة في هذا المتصفح.";
-  }
+function runFFmpeg(input, output, format) {
+  return new Promise((resolve, reject) => {
+    const args = ["-nostdin", "-y", "-i", input, "-vn"];
+    if (format === "mp3") args.push("-codec:a", "libmp3lame", "-b:a", "192k", "-f", "mp3");
+    else args.push("-codec:a", "aac", "-b:a", "192k", "-f", "ipod");
+    args.push(output);
+    const bin = process.env.FFMPEG_PATH || "ffmpeg";
+    const child = spawn(bin, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let err = "";
+    child.stderr.on("data", d => { err += d.toString(); if (err.length > 12000) err = err.slice(-12000); });
+    child.on("error", reject);
+    child.on("close", code => code === 0 ? resolve() : reject(new Error("تعذرت معالجة الملف. تحقق من صيغة الملف. " + err.slice(-500))));
+  });
 }
 
-$("language").onclick=()=>{
-  alert("سيتم تفعيل الواجهة الإنجليزية في تحديث لاحق.");
-};
-
-openDB().then(()=>{
-  return Promise.all([
-    renderLibrary("files","empty"),
-    renderLibrary("filesFull","emptyFull")
-  ]);
-}).catch(()=>{
-  $("empty").textContent="تعذر تهيئة المكتبة في هذا المتصفح.";
+app.post("/api/convert", upload.single("media"), async (req, res, next) => {
+  if (!req.file) return res.status(400).json({ error: "لم يتم إرسال ملف." });
+  const format = String(req.body.format || "").toLowerCase();
+  if (!["mp3", "m4a"].includes(format)) {
+    fs.unlink(req.file.path, () => {});
+    return res.status(400).json({ error: "الصيغة المدعومة هي MP3 أو M4A." });
+  }
+  const output = path.join(os.tmpdir(), "mediapro-" + crypto.randomUUID() + "." + format);
+  try {
+    await runFFmpeg(req.file.path, output, format);
+    res.download(output, "MediaPro-" + Date.now() + "." + format, err => {
+      fs.unlink(req.file.path, () => {});
+      fs.unlink(output, () => {});
+      if (err && !res.headersSent) next(err);
+    });
+  } catch (e) {
+    fs.unlink(req.file.path, () => {});
+    fs.unlink(output, () => {});
+    next(e);
+  }
 });
-</script>
-</body>
-</html>
+
+app.use((err, req, res, next) => {
+  const status = err instanceof multer.MulterError ? 413 : 500;
+  res.status(status).json({ error: status === 413 ? "حجم الملف أكبر من الحد المسموح." : (err.message || "حدث خطأ في الخادم.") });
+});
+app.listen(PORT, () => console.log(`MediaPro backend listening on ${PORT}`));
+'''
+
+package_json = r'''{
+  "name": "mediapro-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MediaPro media conversion backend",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "dev": "node server.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}'''
+
+dockerfile = r'''FROM node:20-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY server.js ./
+COPY public ./public
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["npm","start"]
+'''
+
+readme = r'''# MediaPro — ملفات المشروع
+
+## محتويات المجلد
+- `public/index.html`: واجهة MediaPro البيج والأبيض.
+- `server.js`: خادم Node.js وواجهات API.
+- `package.json`: الاعتمادات وأمر التشغيل.
+- `Dockerfile`: تشغيل الخادم مع FFmpeg.
+
+## الوظائف الموجودة
+- فحص حالة الخادم عبر `GET /api/media/health`.
+- رفع ملف فيديو/صوت تملكه وتحويله إلى MP3 أو M4A عبر `POST /api/convert`.
+- تشغيل الملف الناتج في المتصفح وتنزيله إلى الجهاز.
+- حفظ عنوان الخادم في المتصفح.
+
+## النشر
+الأبسط نشر مجلد المشروع كخدمة Docker على مزود استضافة يدعم Docker.
+بعد النشر اختبر:
+`https://YOUR-SERVER/api/media/health`
+
+ثم افتح واجهة الموقع، وأدخل عنوان الخادم في خانة «إعداد الاتصال بالخادم» واضغط «حفظ عنوان الخادم».
+
+إذا كنت تستضيف الواجهة على GitHub Pages والخادم في مكان آخر، عيّن متغير:
+`ALLOWED_ORIGINS=https://USERNAME.github.io`
+واستبدل القيمة بعنوان موقعك الحقيقي. لا تستخدم `*` في الإنتاج.
+
+## متغيرات البيئة
+- `PORT`: المنفذ (الافتراضي 3000).
+- `MAX_UPLOAD_MB`: أقصى حجم رفع بالميغابايت (الافتراضي 300).
+- `ALLOWED_ORIGINS`: قائمة Origins مفصولة بفواصل، مثل `https://username.github.io`.
+
+## حدود مهمة
+- هذا الخادم يحوّل الملفات التي يرفعها المستخدم فقط. لا يجلب روابط صفحات TikTok أو YouTube أو Instagram ولا يتجاوز DRM أو قيود الوصول ولا يزيل العلامات المائية.
+- لا تضع ملفات حساسة أو ملفات لا تملك حق استخدامها.
+- التشغيل بالخلفية والتحكم من شاشة القفل يعتمدان على المتصفح ونظام الجهاز؛ لا يمكن ضمانهما مثل تطبيق Android أصلي.
+- المكتبة الدائمة على الهاتف غير مضافة في هذه النسخة؛ تنزيل الناتج يحفظه في مجلد التنزيلات حسب إعدادات المتصفح.
+- أضف مصادقة وحدود معدل وقرص تخزين مناسبًا قبل فتح الخدمة للعامة. لا تستخدم هذا النموذج كخدمة عامة دون حماية.
+'''
+
+(base/"public"/"index.html").write_text(index_html, encoding="utf-8")
+(base/"server.js").write_text(server_js, encoding="utf-8")
+(base/"package.json").write_text(package_json, encoding="utf-8")
+(base/"Dockerfile").write_text(dockerfile, encoding="utf-8")
+(base/"README-AR.md").write_text(readme, encoding="utf-8")
+(base/".gitignore").write_text("node_modules/\n.env\n*.log\n", encoding="utf-8")
+
+zip_path = Path("/mnt/data/MediaPro-project.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    for p in base.rglob("*"):
+        if p.is_file():
+            z.write(p, p.relative_to(base.parent))
+print(f"تم تجهيز المشروع: {zip_path}")
+print("الملفات:", ", ".join(str(p.relative_to(base)) for p in base.rglob("*") if p.is_file()))
